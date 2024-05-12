@@ -1133,7 +1133,7 @@ class InkEditor extends AnnotationEditor {
     const scaleFactor = editor.parentScale;
     const padding = data.thickness / 2;
 
-    editor.#disableEditing = true;
+    editor.#disableEditing = false;
     editor.#realWidth = Math.round(width);
     editor.#realHeight = Math.round(height);
 
@@ -1168,7 +1168,7 @@ class InkEditor extends AnnotationEditor {
     const bbox = editor.#getBbox();
     editor.#baseWidth = Math.max(AnnotationEditor.MIN_SIZE, bbox[2] - bbox[0]);
     editor.#baseHeight = Math.max(AnnotationEditor.MIN_SIZE, bbox[3] - bbox[1]);
-    editor.#setScaleFactor(width, height);
+    // editor.#setScaleFactor(width, height);
 
     return editor;
   }

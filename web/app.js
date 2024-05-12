@@ -1667,7 +1667,44 @@ const PDFViewerApplication = {
     annotationStorage.onAnnotationEditor = typeStr => {
       this._hasAnnotationEditors = !!typeStr;
       this.setTitle();
+
+      const editors = annotationStorage.getAll();
+      if (editors) {
+        const datas = [];
+        Object.values(editors).forEach(editor => {
+          datas.push(editor.serialize());
+        });
+        localStorage.setItem("pdfjs.annotationEditors", JSON.stringify(datas));
+      }
     };
+
+    this.eventBus.on(
+      "annotationeditorlayerrendered",
+      function ({ source, pageNumber }) {
+        console.info("");
+        const json = localStorage.getItem("pdfjs.annotationEditors");
+        if (json) {
+          const datas = JSON.parse(json);
+          for (const data of datas) {
+            if (data.pageIndex === pageNumber - 1) {
+              const layer = source.annotationEditorLayer.annotationEditorLayer;
+              if (layer) {
+                const editor = layer.deserialize(data);
+                // layer.add(editor);
+                const annotationEditorUIManager = editor._uiManager;
+                if (annotationEditorUIManager) {
+                  annotationEditorUIManager.rebuild(editor);
+                  editor.commit();
+                  editor.unselect();
+                  layer.show();
+                }
+              }
+              // source.annotationEditorLayer.render(data);
+            }
+          }
+        }
+      }
+    );
   },
 
   setInitialView(

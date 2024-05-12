@@ -186,6 +186,14 @@ class AnnotationEditorLayer {
     this.div.hidden = false;
   }
 
+
+  show() {
+    if (!this.div) {
+      return;
+    }
+    this.div.hidden = false;
+  }
+
   hasTextLayer(textLayer) {
     return textLayer === this.#textLayer?.div;
   }
