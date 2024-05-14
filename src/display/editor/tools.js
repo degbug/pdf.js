@@ -1023,8 +1023,8 @@ class AnnotationEditorUIManager {
   addToAnnotationStorage(editor) {
     if (
       !editor.isEmpty() &&
-      this.#annotationStorage &&
-      !this.#annotationStorage.has(editor.id)
+      this.#annotationStorage
+      // && !this.#annotationStorage.has(editor.id)
     ) {
       this.#annotationStorage.setValue(editor.id, editor);
     }

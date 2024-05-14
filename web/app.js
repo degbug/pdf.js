@@ -177,6 +177,8 @@ const PDFViewerApplication = {
   _nimbusDataPromise: null,
   _caretBrowsing: null,
   _isScrolling: false,
+  _isRecoveryAnnotation: false,
+  _renderedPage: new Map(),
 
   // Called once when the document is loaded.
   async initialize(appConfig) {
@@ -1192,6 +1194,7 @@ const PDFViewerApplication = {
       this.loadingBar?.hide();
 
       firstPagePromise.then(() => {
+        console.info("documentloaded");
         this.eventBus.dispatch("documentloaded", { source: this });
       });
     });
@@ -1316,6 +1319,7 @@ const PDFViewerApplication = {
             scrollMode,
             spreadMode,
           });
+          console.info("documentinit");
           this.eventBus.dispatch("documentinit", { source: this });
           // Make all navigation keys work on document load,
           // unless the viewer is embedded in a web page.
@@ -1373,6 +1377,7 @@ const PDFViewerApplication = {
     );
 
     onePageRendered.then(data => {
+      console.info("onePageRendered");
       this.externalServices.reportTelemetry({
         type: "pageInfo",
         timestamp: data.timestamp,
@@ -1401,6 +1406,7 @@ const PDFViewerApplication = {
           if (pdfDocument !== this.pdfDocument) {
             return; // The document was closed while the layers resolved.
           }
+          console.info("pdfLayerViewer render");
           this.pdfLayerViewer.render({ optionalContentConfig, pdfDocument });
         });
       }
@@ -1408,6 +1414,7 @@ const PDFViewerApplication = {
 
     this._initializePageLabels(pdfDocument);
     this._initializeMetadata(pdfDocument);
+    console.info("_initializeMetadata over");
   },
 
   /**
@@ -1668,41 +1675,79 @@ const PDFViewerApplication = {
       this._hasAnnotationEditors = !!typeStr;
       this.setTitle();
 
-      const editors = annotationStorage.getAll();
-      if (editors) {
-        const datas = [];
-        Object.values(editors).forEach(editor => {
-          datas.push(editor.serialize());
-        });
-        localStorage.setItem("pdfjs.annotationEditors", JSON.stringify(datas));
+      if (this._isRecoveryAnnotation) {
+        return;
       }
+
+      // const editors = annotationStorage.getAll();
+      // if (editors) {
+      //   const datas = [];
+      //   Object.values(editors).forEach(editor => {
+      //     datas.push(editor.serialize());
+      //   });
+      //   localStorage.setItem("pdfjs.annotationEditors", JSON.stringify(datas));
+      // }
     };
+
+    this.eventBus.on("switchannotationeditormode", function (evt) {
+      if (evt && evt.mode === AnnotationEditorType.NONE) {
+        const editors = annotationStorage.getAll();
+        if (editors) {
+          const datas = [];
+          Object.values(editors).forEach(editor => {
+            datas.push(editor.serialize());
+          });
+          localStorage.setItem(
+            "pdfjs.annotationEditors",
+            JSON.stringify(datas)
+          );
+        } else {
+          localStorage.removeItem("pdfjs.annotationEditors");
+        }
+      }
+    });
 
     this.eventBus.on(
       "annotationeditorlayerrendered",
-      function ({ source, pageNumber }) {
-        console.info("");
+      ({ source, pageNumber }) => {
+        if (this._renderedPage.has(pageNumber)) {
+          return;
+        }
+
         const json = localStorage.getItem("pdfjs.annotationEditors");
         if (json) {
           const datas = JSON.parse(json);
+          this._isRecoveryAnnotation = true;
           for (const data of datas) {
             if (data.pageIndex === pageNumber - 1) {
               const layer = source.annotationEditorLayer.annotationEditorLayer;
               if (layer) {
                 const editor = layer.deserialize(data);
                 // layer.add(editor);
+                // PDFViewerApplication.pdfViewer.annotationEditorMode = {
+                //   mode: data.annotationType,
+                // };
                 const annotationEditorUIManager = editor._uiManager;
                 if (annotationEditorUIManager) {
+                  console.info("rebuild");
+                  // layer.add(editor);
                   annotationEditorUIManager.rebuild(editor);
                   editor.commit();
                   editor.unselect();
-                  layer.show();
+                  source.annotationEditorLayer.show();
                 }
               }
               // source.annotationEditorLayer.render(data);
             }
           }
+
+          // PDFViewerApplication.pdfViewer.annotationEditorMode = {
+          //   mode: 0,
+          // };
+          this._isRecoveryAnnotation = false;
         }
+
+        this._renderedPage.set(pageNumber, true);
       }
     );
   },

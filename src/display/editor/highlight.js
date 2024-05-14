@@ -118,9 +118,11 @@ class HighlightEditor extends AnnotationEditor {
       this.#anchorOffset = params.anchorOffset;
       this.#focusNode = params.focusNode;
       this.#focusOffset = params.focusOffset;
-      this.#createOutlines();
-      this.#addToDrawLayer();
-      this.rotate(this.rotation);
+      if (this.#boxes) {
+        this.#createOutlines();
+        this.#addToDrawLayer();
+        this.rotate(this.rotation);
+      }
     }
   }
 
@@ -784,13 +786,15 @@ class HighlightEditor extends AnnotationEditor {
     const boxes = (editor.#boxes = []);
     for (let i = 0; i < quadPoints.length; i += 8) {
       boxes.push({
-        x: (quadPoints[4] - trX) / pageWidth,
-        y: (trY - (1 - quadPoints[i + 5])) / pageHeight,
+        x: quadPoints[4 + i] / pageWidth,
+        y: 1 - quadPoints[i + 5] / pageHeight,
         width: (quadPoints[i + 2] - quadPoints[i]) / pageWidth,
         height: (quadPoints[i + 5] - quadPoints[i + 1]) / pageHeight,
       });
     }
     editor.#createOutlines();
+    editor.#addToDrawLayer();
+    editor.rotate(this.rotation);
 
     return editor;
   }

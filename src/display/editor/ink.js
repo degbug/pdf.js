@@ -787,8 +787,10 @@ class InkEditor extends AnnotationEditor {
       this.setAt(
         baseX * parentWidth,
         baseY * parentHeight,
-        this.width * parentWidth,
-        this.height * parentHeight
+        // this.width * parentWidth,
+        // this.height * parentHeight
+        this.width,
+        this.height
       );
       this.#isCanvasInitialized = true;
       this.#setCanvasDims();
